@@ -1,0 +1,983 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sintagma Gerundială și Gerundivală - Școala Romană</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Google Fonts: Cinzel, Cormorant Garamond, Press Start 2P -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Press+Start+2P&display=swap" rel="stylesheet">
+  
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <!-- Three.js Library for 3D Graphics -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            roman: {
+              red: '#800020',       // Burgundy / Tyrian Red
+              crimson: '#A91B0D',   // Imperial Red
+              gold: '#D4AF37',      // Roman Gold
+              goldlight: '#F3E5AB',
+              marble: '#F5F2EB',    // Marble White
+              darkmarble: '#E2DDD3',
+              dark: '#1C1613',      // Onyx / Obsidian
+              papyrus: '#F9F3E3',   // Papyrus scroll background
+              papyrusborder: '#D3C3A2'
+            }
+          },
+          fontFamily: {
+            cinzel: ['Cinzel', 'serif'],
+            garamond: ['Cormorant Garamond', 'serif'],
+            pixel: ['"Press Start 2P"', 'monospace']
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    ::-webkit-scrollbar {
+      width: 10px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #1C1613;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #D4AF37;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #A91B0D;
+    }
+
+    .papyrus-card {
+      background-color: #F9F3E3;
+      background-image: radial-gradient(#D3C3A2 0.75px, transparent 0.75px), radial-gradient(#D3C3A2 0.75px, #F9F3E3 0.75px);
+      background-size: 30px 30px;
+      background-position: 0 0, 15px 15px;
+      border: 3px double #D4AF37;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4), inset 0 0 15px rgba(184, 134, 11, 0.15);
+    }
+
+    .rpg-dialog {
+      background: rgba(28, 22, 19, 0.92);
+      border: 4px solid #D4AF37;
+      box-shadow: 0 0 0 4px #800020, 0 10px 30px rgba(0,0,0,0.8);
+      position: relative;
+    }
+
+    .rpg-dialog::after {
+      content: '';
+      position: absolute;
+      top: -6px; left: -6px; right: -6px; bottom: -6px;
+      border: 1px solid #F3E5AB;
+      pointer-events: none;
+    }
+
+    @keyframes pulseGlow {
+      0%, 100% { box-shadow: 0 0 15px rgba(212, 175, 55, 0.4); }
+      50% { box-shadow: 0 0 30px rgba(212, 175, 55, 0.8); }
+    }
+    .glow-active {
+      animation: pulseGlow 2s infinite;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+  </style>
+
+  <script>
+    function switchTab(tabId) {
+      // Hide all tab sections
+      const tabLectie = document.getElementById('tab-lectie');
+      const tabCutscene = document.getElementById('tab-cutscene');
+      const tabExercitii = document.getElementById('tab-exercitii');
+
+      if (tabLectie) tabLectie.classList.add('hidden');
+      if (tabCutscene) tabCutscene.classList.add('hidden');
+      if (tabExercitii) tabExercitii.classList.add('hidden');
+
+      // Reset button navigation states
+      const btns = ['btn-tab-lectie', 'btn-tab-cutscene', 'btn-tab-exercitii'];
+      btns.forEach(id => {
+        const btn = document.getElementById(id);
+        if (btn) {
+          btn.className = "px-4 py-2 rounded-t-lg bg-roman-dark/60 text-roman-goldlight border border-roman-gold/40 hover:bg-roman-crimson transition-all duration-200 flex items-center gap-2";
+        }
+      });
+
+      // Activate active tab
+      const targetTab = document.getElementById(tabId);
+      if (targetTab) targetTab.classList.remove('hidden');
+
+      const activeBtn = document.getElementById('btn-' + tabId);
+      if (activeBtn) {
+        activeBtn.className = "px-4 py-2 rounded-t-lg bg-roman-gold text-roman-dark font-bold shadow-md transition-all duration-200 flex items-center gap-2 hover:bg-roman-goldlight";
+      }
+
+      // Resize 3D Canvas if switching to cutscene tab
+      if (tabId === 'tab-cutscene' && typeof onWindowResize === 'function') {
+        setTimeout(onWindowResize, 100);
+      }
+    }
+
+    function toggleExplanation(id) {
+      const el = document.getElementById(id);
+      if (el) el.classList.toggle('hidden');
+    }
+  </script>
+</head>
+<body class="bg-roman-dark text-roman-darkmarble font-garamond min-h-screen flex flex-col selection:bg-roman-gold selection:text-roman-dark">
+
+  <header class="bg-roman-red border-b-4 border-roman-gold text-roman-marble sticky top-0 z-50 shadow-2xl">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex flex-col sm:flex-row justify-between items-center gap-4">
+      
+      <!-- Logo / Title -->
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-full bg-roman-gold flex items-center justify-center text-roman-red font-cinzel font-bold text-xl shadow-inner border border-white">
+          <i class="fa-solid fa-landmark"></i>
+        </div>
+        <div>
+          <h1 class="font-cinzel font-bold text-lg sm:text-xl tracking-wider text-roman-goldlight">
+            SCHOLA ROMANA
+          </h1>
+          <p class="text-xs text-amber-200 tracking-widest uppercase font-cinzel">Sintagma Gerundială & Gerundivală</p>
+        </div>
+      </div>
+
+      <!-- Navigation Tabs -->
+      <nav class="flex flex-wrap justify-center gap-2 font-cinzel text-sm">
+        <button onclick="switchTab('tab-lectie')" id="btn-tab-lectie" class="px-4 py-2 rounded-t-lg bg-roman-gold text-roman-dark font-bold shadow-md transition-all duration-200 flex items-center gap-2 hover:bg-roman-goldlight">
+          <i class="fa-solid fa-book-open"></i> 1. Lecția Completă
+        </button>
+        <button onclick="switchTab('tab-cutscene')" id="btn-tab-cutscene" class="px-4 py-2 rounded-t-lg bg-roman-dark/60 text-roman-goldlight border border-roman-gold/40 hover:bg-roman-crimson transition-all duration-200 flex items-center gap-2">
+          <i class="fa-solid fa-gamepad"></i> 2. Cutscene 3D RPG
+        </button>
+        <button onclick="switchTab('tab-exercitii')" id="btn-tab-exercitii" class="px-4 py-2 rounded-t-lg bg-roman-dark/60 text-roman-goldlight border border-roman-gold/40 hover:bg-roman-crimson transition-all duration-200 flex items-center gap-2">
+          <i class="fa-solid fa-pen-nib"></i> 3. Exerciții Interactive
+        </button>
+      </nav>
+
+    </div>
+  </header>
+
+  <!-- ================= MAIN CONTENT WRAPPER ================= -->
+  <main class="flex-grow max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8">
+
+    <section id="tab-lectie" class="space-y-8 transition-opacity duration-300">
+      
+      <!-- Hero Banner -->
+      <div class="papyrus-card p-6 sm:p-10 rounded-xl relative overflow-hidden text-roman-dark">
+        <div class="absolute -right-10 -bottom-10 opacity-10 text-roman-crimson pointer-events-none">
+          <i class="fa-solid fa-scroll text-9xl"></i>
+        </div>
+        
+        <div class="max-w-3xl">
+          <span class="inline-block px-3 py-1 bg-roman-crimson text-roman-goldlight font-cinzel text-xs font-bold rounded-full mb-3 shadow">GRAMMATICA LATINA</span>
+          <h2 class="font-cinzel text-3xl sm:text-4xl font-bold text-roman-crimson mb-4 border-b-2 border-roman-gold/40 pb-2">
+            Gerundium vs. Gerundivum
+          </h2>
+          <p class="text-lg leading-relaxed text-slate-800 font-semibold mb-4">
+            În limba latină, exprimarea acțiunii în desfășurare sau a scopului se realizat prin două structuri fundamentale: <strong class="text-roman-crimson font-bold">Gerundium</strong> (Substantiv Verbal) și <strong class="text-roman-crimson font-bold">Gerundivum</strong> (Adjectiv Verbal).
+          </p>
+        </div>
+      </div>
+
+      <!-- Grid 2 Columns: Gerundiu vs Gerundival -->
+      <div class="grid md:grid-cols-2 gap-6">
+        
+        <!-- CARD 1: GERUNDIU -->
+        <div class="papyrus-card p-6 rounded-xl flex flex-col justify-between text-slate-900">
+          <div>
+            <div class="flex items-center gap-3 mb-4 border-b-2 border-roman-gold pb-2">
+              <span class="w-8 h-8 rounded-full bg-roman-crimson text-roman-gold flex items-center justify-center font-cinzel font-bold">1</span>
+              <h3 class="font-cinzel text-2xl font-bold text-roman-crimson">Gerundium (Gerundiul)</h3>
+            </div>
+            <p class="mb-4 text-slate-800 leading-relaxed">
+              Este un <strong>substantiv verbal activ</strong>, neutru singular, utilizat la cazurile oblice (Genitiv, Dativ, Acuzativ cu prep. <em>ad</em>, Ablativ). El suplinește lipsa infinitivului la aceste cazuri.
+            </p>
+            
+            <div class="bg-amber-100/80 p-4 rounded-lg border border-amber-300 mb-4">
+              <h4 class="font-cinzel font-bold text-roman-crimson text-sm mb-2 uppercase">Sufix de formare:</h4>
+              <p class="font-mono text-sm bg-white p-2 rounded border border-amber-200">
+                Tema prezentului + <strong>-nd-</strong> + desinența cazului<br>
+                <span class="text-xs text-slate-600">(Conj. I/II: -and- / -end- | Conj. III/IV: -end- / -iend-)</span>
+              </p>
+            </div>
+
+            <h4 class="font-cinzel font-bold text-slate-900 mb-2">Flexiunea cazuală (ex: <em>lego, -ere</em> = a citi):</h4>
+            <ul class="space-y-2 text-sm font-serif mb-4">
+              <li class="bg-white/60 p-2 rounded"><strong class="font-cinzel text-roman-crimson">Genitiv:</strong> <em>legendi</em> (de a citi, de citit)</li>
+              <li class="bg-white/60 p-2 rounded"><strong class="font-cinzel text-roman-crimson">Dativ:</strong> <em>legendo</em> (cititului, pentru a citi)</li>
+              <li class="bg-white/60 p-2 rounded"><strong class="font-cinzel text-roman-crimson">Acuzativ (cu ad):</strong> <em>ad legendum</em> (pentru a citi)</li>
+              <li class="bg-white/60 p-2 rounded"><strong class="font-cinzel text-roman-crimson">Ablativ:</strong> <em>legendo</em> (citind, prin citire)</li>
+            </ul>
+          </div>
+
+          <div class="bg-roman-crimson/10 p-3 rounded-lg border border-roman-crimson/30">
+            <span class="font-cinzel text-xs font-bold text-roman-crimson uppercase block">Sintaxă:</span>
+            <p class="text-xs text-slate-800 italic">Poate primi un complement direct în cazul Acuzativ: <em>"Ars regendi <strong>civitatem</strong>"</em> (Arta de a guverna cetatea).</p>
+          </div>
+        </div>
+
+        <!-- CARD 2: GERUNDIVAL -->
+        <div class="papyrus-card p-6 rounded-xl flex flex-col justify-between text-slate-900">
+          <div>
+            <div class="flex items-center gap-3 mb-4 border-b-2 border-roman-gold pb-2">
+              <span class="w-8 h-8 rounded-full bg-roman-crimson text-roman-gold flex items-center justify-center font-cinzel font-bold">2</span>
+              <h3 class="font-cinzel text-2xl font-bold text-roman-crimson">Gerundivum (Gerundivalul)</h3>
+            </div>
+            <p class="mb-4 text-slate-800 leading-relaxed">
+              Este un <strong>adjectiv verbal pasiv</strong> (numit și participiu de viitor pasiv), care se acordă în <em>gen, număr și caz</em> cu substantivul pe care îl determină.
+            </p>
+
+            <div class="bg-amber-100/80 p-4 rounded-lg border border-amber-300 mb-4">
+              <h4 class="font-cinzel font-bold text-roman-crimson text-sm mb-2 uppercase">Sufix & Flexiune:</h4>
+              <p class="font-mono text-sm bg-white p-2 rounded border border-amber-200">
+                Tema + <strong>-ndus, -nda, -ndum</strong><br>
+                <span class="text-xs text-slate-600">(Se declină ca un adjectiv cu 3 terminații de clasa I și a II-a)</span>
+              </p>
+            </div>
+
+            <h4 class="font-cinzel font-bold text-slate-900 mb-2">Exemplu de acord:</h4>
+            <div class="bg-white/60 p-3 rounded text-sm space-y-2 mb-4 font-serif">
+              <p>• <em>puer <strong>docendus</strong></em> (băiatul ce trebuie învățat / de învățat)</p>
+              <p>• <em>epistula <strong>scribenda</strong></em> (scrisoarea ce trebuie scrisă)</p>
+              <p>• <em>ad <strong>urbem defendendam</strong></em> (pentru apărarea cetății)</p>
+            </div>
+          </div>
+
+          <div class="bg-roman-crimson/10 p-3 rounded-lg border border-roman-crimson/30">
+            <span class="font-cinzel text-xs font-bold text-roman-crimson uppercase block">Valoare Obligativă:</span>
+            <p class="text-xs text-slate-800 italic">Folosit cu verb auxiliar (sum): <em>"Carthago delenda est"</em> (Carthagina trebuie distrusă!).</p>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="bg-roman-dark border-2 border-roman-gold rounded-xl p-6 shadow-2xl relative">
+        <div class="flex items-center gap-3 mb-4">
+          <i class="fa-solid fa-arrows-rotate text-2xl text-roman-gold"></i>
+          <h3 class="font-cinzel text-2xl font-bold text-roman-goldlight">
+            Regula Acompaniamentului / Transformării Sintagmei
+          </h3>
+        </div>
+        <p class="text-slate-300 mb-6 leading-relaxed">
+          Atunci când Gerundiul are un complement direct la acuzativ, romanii preferau adesea <strong class="text-roman-gold">Atracția Gerundivală</strong> (transformarea construcției active cu gerundiu într-o construcție pasivă cu gerundival).
+        </p>
+
+        <!-- Dynamic Comparison Table -->
+        <div class="grid md:grid-cols-2 gap-4 text-center">
+          
+          <div class="bg-roman-red/40 border border-roman-gold/30 p-4 rounded-lg">
+            <span class="text-xs font-cinzel text-amber-200 block uppercase mb-1">1. Sintagmă Gerundială (Activă)</span>
+            <p class="text-xl font-cinzel font-bold text-white mb-2">ars <span class="text-amber-300">regendi</span> <span class="text-sky-300">civitatem</span></p>
+            <p class="text-xs text-slate-300">"arta de a guverna cetatea"</p>
+            <p class="text-xs text-slate-400 mt-2 italic">Gerundiu Genitiv (regendi) + Complement Acuzativ (civitatem)</p>
+          </div>
+
+          <div class="bg-emerald-950/40 border border-emerald-500/40 p-4 rounded-lg">
+            <span class="text-xs font-cinzel text-emerald-300 block uppercase mb-1">2. Sintagmă Gerundivală (Pasivă / Atractă)</span>
+            <p class="text-xl font-cinzel font-bold text-white mb-2">ars <span class="text-emerald-300">regendae</span> <span class="text-sky-300">civitatis</span></p>
+            <p class="text-xs text-slate-300">"arta cetății de a fi guvernată"</p>
+            <p class="text-xs text-slate-400 mt-2 italic">Substantivul trece în cazul Gerundiului, iar Gerundivalul se acordă cu el!</p>
+          </div>
+
+        </div>
+
+        <!-- Steps Box -->
+        <div class="mt-6 bg-slate-900/80 p-4 rounded-lg border border-roman-gold/20 text-sm">
+          <h4 class="font-cinzel font-bold text-roman-gold mb-2">Pașii transformării:</h4>
+          <ol class="list-decimal list-inside space-y-1 text-slate-300">
+            <li>Substantivul în acuzativ (<em>civitatem</em>) trece în cazul pe care îl avea Gerundiul (Genitiv: <em>civitatis</em>).</li>
+            <li>Gerundiul (<em>regendi</em>) se transformă în Gerundival (<em>regendus, -a, -um</em>).</li>
+            <li>Gerundivalul se acordă în gen, număr și caz cu substantivul (Genitiv feminin sing.: <em>regendae</em>).</li>
+          </ol>
+        </div>
+      </div>
+
+    </section>
+
+    <section id="tab-cutscene" class="hidden space-y-6">
+      
+      <!-- Top RPG Header -->
+      <div class="flex flex-col sm:flex-row justify-between items-center gap-4 bg-roman-dark border border-roman-gold/40 p-4 rounded-xl">
+        <div>
+          <h2 class="font-cinzel text-xl font-bold text-roman-gold">FORUM ROMANUM 3D - ÎNTÂLNIRE CU CAESAR</h2>
+          <p class="text-xs text-slate-400">Scenă cinematică 3D interactivă de învățat limba latină</p>
+        </div>
+        <button id="btn-start-cutscene" onclick="startCutscene()" class="glow-active px-6 py-3 bg-roman-crimson hover:bg-red-700 text-roman-goldlight font-cinzel font-bold rounded-lg shadow-lg flex items-center gap-2 text-base transition-all">
+          <i class="fa-solid fa-play"></i> ÎNCEPE CUTSCENE-UL ISTORIC
+        </button>
+      </div>
+
+      <!-- 3D Canvas Viewport Container -->
+      <div class="relative w-full h-[500px] sm:h-[550px] bg-black rounded-xl overflow-hidden border-4 border-roman-gold shadow-2xl">
+        
+        <!-- Three.js Canvas Container -->
+        <div id="three-container" class="w-full h-full"></div>
+
+        <!-- Overlays / HUD -->
+        <div class="absolute top-4 left-4 pointer-events-none bg-black/60 backdrop-blur border border-roman-gold/30 px-3 py-2 rounded text-xs font-pixel text-amber-300">
+          <i class="fa-solid fa-location-dot"></i> ROME, 44 a.Chr.n.
+        </div>
+
+        <!-- Speaker Name Badge -->
+        <div id="rpg-speaker-badge" class="hidden absolute left-6 bottom-[190px] bg-roman-crimson border-2 border-roman-gold text-roman-goldlight px-4 py-1 rounded-t-lg font-cinzel font-bold text-sm sm:text-base shadow-lg z-20">
+          IULIUS CAESAR
+        </div>
+
+        <!-- RPG Dialog Box Overlay -->
+        <div id="rpg-dialog-box" class="hidden absolute bottom-4 left-4 right-4 rpg-dialog p-4 sm:p-6 rounded-lg text-white z-10 flex flex-col justify-between min-h-[160px]">
+          
+          <!-- Dialog Text Area -->
+          <div class="mb-4">
+            <p id="rpg-dialog-text" class="text-base sm:text-lg font-serif leading-relaxed text-amber-100">
+              <!-- Text injected via JS -->
+            </p>
+          </div>
+
+          <!-- Interactive Choices / Controls Area -->
+          <div id="rpg-controls" class="flex flex-wrap justify-end gap-3 pt-2 border-t border-roman-gold/20">
+            <!-- Buttons injected dynamically -->
+          </div>
+        </div>
+
+        <!-- Overlay Intro Banner before Play -->
+        <div id="cutscene-overlay-start" class="absolute inset-0 bg-black/80 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-center z-30">
+          <i class="fa-solid fa-crown text-5xl text-roman-gold mb-4 animate-bounce"></i>
+          <h3 class="font-cinzel text-3xl font-bold text-roman-goldlight mb-2">Discursul Marelui Imperator</h3>
+          <p class="max-w-md text-sm text-slate-300 font-serif mb-6">
+            Pășește pe Forumul Roman! Iulius Caesar pregătește legiunile pentru campanie. Vei purta un dialog despre motivarea soldaților folosind sintagme gerundiale și gerundivale.
+          </p>
+          <button onclick="startCutscene()" class="px-8 py-3 bg-roman-gold text-roman-dark font-cinzel font-bold text-lg rounded-lg shadow-xl hover:bg-roman-goldlight transform hover:scale-105 transition-all">
+            <i class="fa-solid fa-scroll"></i> Începe Dialogul
+          </button>
+        </div>
+
+      </div>
+
+    </section>
+
+    <section id="tab-exercitii" class="hidden space-y-8">
+      
+      <!-- Score & Reset Bar -->
+      <div class="papyrus-card p-4 rounded-xl flex flex-col sm:flex-row justify-between items-center gap-4 text-roman-dark">
+        <div>
+          <h2 class="font-cinzel text-2xl font-bold text-roman-crimson">Exerciții & Verificare Live</h2>
+          <p class="text-xs text-slate-700">Testează-ți cunoștințele de sintagmatică latină</p>
+        </div>
+        <div class="flex items-center gap-4">
+          <div class="bg-roman-crimson text-roman-goldlight px-4 py-2 rounded-lg font-cinzel font-bold text-sm shadow border border-roman-gold">
+            Scor: <span id="user-score" class="text-xl text-roman-gold">0</span> / 40 pct
+          </div>
+          <button onclick="resetExercises()" class="px-3 py-2 bg-slate-800 text-white rounded hover:bg-slate-700 text-xs font-cinzel">
+            <i class="fa-solid fa-rotate-right"></i> Resetează
+          </button>
+        </div>
+      </div>
+
+      <!-- EXERCIȚIUL 1: Quiz Grilă -->
+      <div class="papyrus-card p-6 rounded-xl text-slate-900">
+        <div class="flex justify-between items-start mb-4 border-b border-roman-gold/40 pb-2">
+          <div>
+            <span class="text-xs font-cinzel text-roman-crimson font-bold uppercase">Exercițiul 1 (10 puncte)</span>
+            <h3 class="font-cinzel text-xl font-bold">Alege varianta corectă de traducere</h3>
+          </div>
+          <button onclick="toggleExplanation('exp-1')" class="text-xs bg-roman-crimson/10 text-roman-crimson border border-roman-crimson/30 px-3 py-1 rounded hover:bg-roman-crimson hover:text-white transition">
+            <i class="fa-solid fa-circle-info"></i> Explicație
+          </button>
+        </div>
+
+        <p class="text-base mb-4 font-serif">
+          Cum se traduce sintagma: <strong class="text-roman-crimson font-bold">"Ad bene vivendum nati sumus"</strong>?
+        </p>
+
+        <div id="q1-options" class="grid sm:grid-cols-2 gap-3 mb-4">
+          <button onclick="checkQ1(this, false)" class="p-3 bg-white hover:bg-amber-100 border border-amber-300 rounded text-left font-serif transition">
+            A) Am fost născuți trăind bine.
+          </button>
+          <button onclick="checkQ1(this, true)" class="p-3 bg-white hover:bg-amber-100 border border-amber-300 rounded text-left font-serif transition">
+            B) Suntem născuți pentru a trăi bine.
+          </button>
+          <button onclick="checkQ1(this, false)" class="p-3 bg-white hover:bg-amber-100 border border-amber-300 rounded text-left font-serif transition">
+            C) Viața bună este născută pentru noi.
+          </button>
+          <button onclick="checkQ1(this, false)" class="p-3 bg-white hover:bg-amber-100 border border-amber-300 rounded text-left font-serif transition">
+            D) Trebuie să trăim bine prin naștere.
+          </button>
+        </div>
+
+        <!-- Explanation box -->
+        <div id="exp-1" class="hidden p-3 bg-blue-50 border border-blue-300 rounded text-xs text-blue-900 italic font-serif">
+          <strong>Explicație:</strong> Prepoziția <em>ad</em> urmată de gerundiu la Acuzativ (<em>vivendum</em>) exprimă scopul acțiunii ("pentru a trăi").
+        </div>
+      </div>
+
+      <!-- EXERCIȚIUL 2: Transformare Gerundială -> Gerundivală -->
+      <div class="papyrus-card p-6 rounded-xl text-slate-900">
+        <div class="flex justify-between items-start mb-4 border-b border-roman-gold/40 pb-2">
+          <div>
+            <span class="text-xs font-cinzel text-roman-crimson font-bold uppercase">Exercițiul 2 (10 puncte)</span>
+            <h3 class="font-cinzel text-xl font-bold">Transformare în Gerundival</h3>
+          </div>
+          <button onclick="toggleExplanation('exp-2')" class="text-xs bg-roman-crimson/10 text-roman-crimson border border-roman-crimson/30 px-3 py-1 rounded hover:bg-roman-crimson hover:text-white transition">
+            <i class="fa-solid fa-circle-info"></i> Explicație
+          </button>
+        </div>
+
+        <p class="text-base mb-4 font-serif">
+          Transformați sintagma gerundială <strong class="text-roman-crimson font-bold">"Spes librum legendi"</strong> (Speranța de a citi o carte) într-o sintagmă gerundivală:
+        </p>
+
+        <div class="flex flex-col sm:flex-row gap-3 items-center mb-4">
+          <span class="font-cinzel font-bold text-sm">Spes</span>
+          <input type="text" id="q2-input-1" placeholder="substantivul (ex: libri)" class="p-2 border border-amber-400 rounded bg-white text-sm w-full sm:w-48">
+          <input type="text" id="q2-input-2" placeholder="gerundivalul (ex: legendi)" class="p-2 border border-amber-400 rounded bg-white text-sm w-full sm:w-48">
+          <button onclick="checkQ2()" class="px-4 py-2 bg-roman-crimson text-roman-goldlight font-cinzel font-bold text-xs rounded hover:bg-red-800 transition">
+            Verifică
+          </button>
+        </div>
+        <p id="q2-feedback" class="text-xs font-bold"></p>
+
+        <!-- Explanation box -->
+        <div id="exp-2" class="hidden p-3 bg-blue-50 border border-blue-300 rounded text-xs text-blue-900 italic font-serif">
+          <strong>Explicație:</strong> Substantivul <em>librum</em> trece în cazul Genitiv masculin singular (<em>libri</em>), iar Gerundivalul se acordă cu el (<em>legendi</em>) -> <strong>Spes libri legendi</strong>.
+        </div>
+      </div>
+
+      <!-- EXERCIȚIUL 3: Potrivire de Termeni (Match) -->
+      <div class="papyrus-card p-6 rounded-xl text-slate-900">
+        <div class="flex justify-between items-start mb-4 border-b border-roman-gold/40 pb-2">
+          <div>
+            <span class="text-xs font-cinzel text-roman-crimson font-bold uppercase">Exercițiul 3 (10 puncte)</span>
+            <h3 class="font-cinzel text-xl font-bold">Asociază Formele cu Funcția Sintactică</h3>
+          </div>
+          <button onclick="toggleExplanation('exp-3')" class="text-xs bg-roman-crimson/10 text-roman-crimson border border-roman-crimson/30 px-3 py-1 rounded hover:bg-roman-crimson hover:text-white transition">
+            <i class="fa-solid fa-circle-info"></i> Explicație
+          </button>
+        </div>
+
+        <div class="grid sm:grid-cols-2 gap-4 mb-4 text-sm font-serif">
+          <div class="space-y-3">
+            <div class="p-2 bg-white rounded border border-amber-300 font-bold">1. Carthago delenda est</div>
+            <div class="p-2 bg-white rounded border border-amber-300 font-bold">2. Cupidus bellandi</div>
+            <div class="p-2 bg-white rounded border border-amber-300 font-bold">3. Ad pacem petendam</div>
+          </div>
+          <div class="space-y-3">
+            <select id="q3-select-1" class="w-full p-2 border border-amber-400 rounded bg-white">
+              <option value="">-- Alege valoarea --</option>
+              <option value="obligativitate">Gerundival cu valoare de obligativitate</option>
+              <option value="genitiv">Gerundiu în Genitiv (Dornic de luptă)</option>
+              <option value="scop">Gerundival la Acuzativ exprimând scopul</option>
+            </select>
+            <select id="q3-select-2" class="w-full p-2 border border-amber-400 rounded bg-white">
+              <option value="">-- Alege valoarea --</option>
+              <option value="obligativitate">Gerundival cu valoare de obligativitate</option>
+              <option value="genitiv">Gerundiu în Genitiv (Dornic de luptă)</option>
+              <option value="scop">Gerundival la Acuzativ exprimând scopul</option>
+            </select>
+            <select id="q3-select-3" class="w-full p-2 border border-amber-400 rounded bg-white">
+              <option value="">-- Alege valoarea --</option>
+              <option value="obligativitate">Gerundival cu valoare de obligativitate</option>
+              <option value="genitiv">Gerundiu în Genitiv (Dornic de luptă)</option>
+              <option value="scop">Gerundival la Acuzativ exprimând scopul</option>
+            </select>
+          </div>
+        </div>
+
+        <button onclick="checkQ3()" class="px-4 py-2 bg-roman-crimson text-roman-goldlight font-cinzel font-bold text-xs rounded hover:bg-red-800 transition">
+          Verifică Potrivirea
+        </button>
+        <p id="q3-feedback" class="text-xs font-bold mt-2"></p>
+
+        <!-- Explanation box -->
+        <div id="exp-3" class="hidden p-3 bg-blue-50 border border-blue-300 rounded text-xs text-blue-900 italic font-serif mt-2">
+          <strong>Explicație:</strong> 1 = Obligativitate (Carthagina trebuie distrusă), 2 = Genitiv gerundial (dornic de a lupta), 3 = Acuzativ gerundival cu ad (pentru a cere pacea).
+        </div>
+      </div>
+
+      <!-- EXERCIȚIUL 4: Completare de Spații -->
+      <div class="papyrus-card p-6 rounded-xl text-slate-900">
+        <div class="flex justify-between items-start mb-4 border-b border-roman-gold/40 pb-2">
+          <div>
+            <span class="text-xs font-cinzel text-roman-crimson font-bold uppercase">Exercițiul 4 (10 puncte)</span>
+            <h3 class="font-cinzel text-xl font-bold">Completarea terminațiilor corecte</h3>
+          </div>
+          <button onclick="toggleExplanation('exp-4')" class="text-xs bg-roman-crimson/10 text-roman-crimson border border-roman-crimson/30 px-3 py-1 rounded hover:bg-roman-crimson hover:text-white transition">
+            <i class="fa-solid fa-circle-info"></i> Explicație
+          </button>
+        </div>
+
+        <p class="text-base mb-4 font-serif leading-relaxed">
+          Completati spatiul liber: "Milites parati sunt ad urbem defend<input type="text" id="q4-input" placeholder="..." class="w-16 p-1 border-b-2 border-roman-crimson bg-amber-50 text-center font-bold">" (Soldații sunt pregătiți pentru a apăra cetatea).
+        </p>
+
+        <button onclick="checkQ4()" class="px-4 py-2 bg-roman-crimson text-roman-goldlight font-cinzel font-bold text-xs rounded hover:bg-red-800 transition">
+          Verifică Terminația
+        </button>
+        <p id="q4-feedback" class="text-xs font-bold mt-2"></p>
+
+        <!-- Explanation box -->
+        <div id="exp-4" class="hidden p-3 bg-blue-50 border border-blue-300 rounded text-xs text-blue-900 italic font-serif mt-2">
+          <strong>Explicație:</strong> Deoarece <em>urbem</em> este acuzativ feminin singular, gerundivalul derivat din <em>defendo</em> trebuie să aibă acuzativul feminin singular: <strong>defendendam</strong>.
+        </div>
+      </div>
+
+    </section>
+
+  </main>
+
+  <footer class="bg-roman-dark border-t-2 border-roman-gold py-6 text-center text-xs text-slate-400 font-cinzel">
+    <p>SCHOLA ROMANA © 2026 - Lecție Interactivă de Limba Latină</p>
+    <p class="mt-1 text-slate-500">Realizat cu Three.js, Tailwind CSS & JavaScript</p>
+  </footer>
+
+  <!-- ================= JAVASCRIPT CODE ================= -->
+  <script>
+    let scene, camera, renderer;
+    let caesarMesh, studentMesh;
+    let cameraTargetPos = { x: 0, y: 3.5, z: 9 };
+    let cameraCurrentPos = { x: 0, y: 3.5, z: 9 };
+
+    function init3D() {
+      const container = document.getElementById('three-container');
+      if (!container) return;
+      
+      const width = container.clientWidth;
+      const height = container.clientHeight;
+
+      // 1. Scene
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x120c0a); // Deep dusk sky
+      scene.fog = new THREE.FogExp2(0x120c0a, 0.03);
+
+      // 2. Camera
+      camera = new THREE.PerspectiveCamera(50, width / height, 0.1, 100);
+      camera.position.set(cameraCurrentPos.x, cameraCurrentPos.y, cameraCurrentPos.z);
+      camera.lookAt(0, 2.5, 0);
+
+      // 3. Renderer
+      renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setSize(width, height);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      
+      // Clear container and append canvas
+      container.innerHTML = '';
+      container.appendChild(renderer.domElement);
+
+      // 4. Lights
+      const ambientLight = new THREE.AmbientLight(0xffecd1, 0.7);
+      scene.add(ambientLight);
+
+      const dirLight = new THREE.DirectionalLight(0xffd1a3, 1.2);
+      dirLight.position.set(10, 20, 10);
+      dirLight.castShadow = true;
+      dirLight.shadow.mapSize.width = 1024;
+      dirLight.shadow.mapSize.height = 1024;
+      scene.add(dirLight);
+
+      const torchLight = new THREE.PointLight(0xff7700, 1.5, 15);
+      torchLight.position.set(0, 3, 2);
+      scene.add(torchLight);
+
+      // 5. Forum Floor
+      const floorGeo = new THREE.PlaneGeometry(40, 40);
+      const floorMat = new THREE.MeshStandardMaterial({ color: 0xd8d0c5, roughness: 0.4 });
+      const floor = new THREE.Mesh(floorGeo, floorMat);
+      floor.rotation.x = -Math.PI / 2;
+      floor.receiveShadow = true;
+      scene.add(floor);
+
+      const carpetGeo = new THREE.PlaneGeometry(4, 16);
+      const carpetMat = new THREE.MeshStandardMaterial({ color: 0x800020, roughness: 0.8 });
+      const carpet = new THREE.Mesh(carpetGeo, carpetMat);
+      carpet.rotation.x = -Math.PI / 2;
+      carpet.position.set(0, 0.01, 1);
+      carpet.receiveShadow = true;
+      scene.add(carpet);
+
+      // 6. Roman Columns Architecture
+      createRomanColumns();
+
+      // 7. 3D Stylized Low-Poly Characters
+      caesarMesh = createCaesar3DModel();
+      caesarMesh.position.set(-1.2, 0, 0);
+      caesarMesh.rotation.y = 0.5;
+      scene.add(caesarMesh);
+
+      studentMesh = createStudent3DModel();
+      studentMesh.position.set(1.2, 0, 1.5);
+      studentMesh.rotation.y = -0.6;
+      scene.add(studentMesh);
+
+      // Resize listener
+      window.addEventListener('resize', onWindowResize);
+
+      // Start Render Loop
+      animate();
+    }
+
+    function createRomanColumns() {
+      const colGeo = new THREE.CylinderGeometry(0.4, 0.5, 7, 16);
+      const colMat = new THREE.MeshStandardMaterial({ color: 0xe2ddd3, roughness: 0.3 });
+      
+      const baseGeo = new THREE.BoxGeometry(1.2, 0.4, 1.2);
+      const capGeo = new THREE.BoxGeometry(1.3, 0.5, 1.3);
+
+      const positions = [
+        [-4, 3.5, -2], [4, 3.5, -2],
+        [-4, 3.5, 2],  [4, 3.5, 2],
+        [-4, 3.5, 6],  [4, 3.5, 6],
+        [-6, 3.5, -5], [0, 3.5, -5], [6, 3.5, -5]
+      ];
+
+      positions.forEach(pos => {
+        const group = new THREE.Group();
+        
+        const shaft = new THREE.Mesh(colGeo, colMat);
+        shaft.castShadow = true;
+        shaft.receiveShadow = true;
+        group.add(shaft);
+
+        const base = new THREE.Mesh(baseGeo, colMat);
+        base.position.y = -3.3;
+        group.add(base);
+
+        const cap = new THREE.Mesh(capGeo, colMat);
+        cap.position.y = 3.3;
+        group.add(cap);
+
+        group.position.set(pos[0], pos[1], pos[2]);
+        scene.add(group);
+      });
+    }
+
+    function createCaesar3DModel() {
+      const caesarGroup = new THREE.Group();
+
+      const bodyGeo = new THREE.CylinderGeometry(0.5, 0.7, 2.4, 12);
+      const bodyMat = new THREE.MeshStandardMaterial({ color: 0x800020, roughness: 0.6 });
+      const body = new THREE.Mesh(bodyGeo, bodyMat);
+      body.position.y = 1.2;
+      body.castShadow = true;
+      caesarGroup.add(body);
+
+      const sashGeo = new THREE.TorusGeometry(0.55, 0.1, 8, 16);
+      const sashMat = new THREE.MeshStandardMaterial({ color: 0xd4af37, roughness: 0.2, metalness: 0.5 });
+      const sash = new THREE.Mesh(sashGeo, sashMat);
+      sash.position.y = 1.8;
+      sash.rotation.x = Math.PI / 3;
+      caesarGroup.add(sash);
+
+      const headGeo = new THREE.SphereGeometry(0.35, 16, 16);
+      const headMat = new THREE.MeshStandardMaterial({ color: 0xffdbac, roughness: 0.5 });
+      const head = new THREE.Mesh(headGeo, headMat);
+      head.position.y = 2.75;
+      caesarGroup.add(head);
+
+      const crownGeo = new THREE.TorusGeometry(0.37, 0.05, 6, 12);
+      const crownMat = new THREE.MeshStandardMaterial({ color: 0xd4af37, metalness: 0.8, roughness: 0.2 });
+      const crown = new THREE.Mesh(crownGeo, crownMat);
+      crown.position.y = 2.9;
+      crown.rotation.x = Math.PI / 2;
+      caesarGroup.add(crown);
+
+      return caesarGroup;
+    }
+
+    function createStudent3DModel() {
+      const studentGroup = new THREE.Group();
+
+      const bodyGeo = new THREE.CylinderGeometry(0.45, 0.6, 2.2, 12);
+      const bodyMat = new THREE.MeshStandardMaterial({ color: 0xdedede, roughness: 0.7 });
+      const body = new THREE.Mesh(bodyGeo, bodyMat);
+      body.position.y = 1.1;
+      body.castShadow = true;
+      studentGroup.add(body);
+
+      const headGeo = new THREE.SphereGeometry(0.32, 16, 16);
+      const headMat = new THREE.MeshStandardMaterial({ color: 0xf1c27d, roughness: 0.5 });
+      const head = new THREE.Mesh(headGeo, headMat);
+      head.position.y = 2.5;
+      studentGroup.add(head);
+
+      const scrollGeo = new THREE.CylinderGeometry(0.08, 0.08, 0.6, 8);
+      const scrollMat = new THREE.MeshStandardMaterial({ color: 0xf9f3e3 });
+      const scroll = new THREE.Mesh(scrollGeo, scrollMat);
+      scroll.position.set(-0.4, 1.3, 0.3);
+      scroll.rotation.z = Math.PI / 4;
+      studentGroup.add(scroll);
+
+      return studentGroup;
+    }
+
+    function animate() {
+      requestAnimationFrame(animate);
+
+      const time = Date.now() * 0.002;
+
+      if (caesarMesh) caesarMesh.position.y = Math.sin(time) * 0.04;
+      if (studentMesh) studentMesh.position.y = Math.cos(time * 0.9) * 0.03;
+
+      cameraCurrentPos.x += (cameraTargetPos.x - cameraCurrentPos.x) * 0.05;
+      cameraCurrentPos.y += (cameraTargetPos.y - cameraCurrentPos.y) * 0.05;
+      cameraCurrentPos.z += (cameraTargetPos.z - cameraCurrentPos.z) * 0.05;
+
+      if (camera) {
+        camera.position.set(cameraCurrentPos.x, cameraCurrentPos.y, cameraCurrentPos.z);
+        camera.lookAt(0, 2.2, 0);
+        renderer.render(scene, camera);
+      }
+    }
+
+    function onWindowResize() {
+      const container = document.getElementById('three-container');
+      if (!container || !camera || !renderer) return;
+      const width = container.clientWidth;
+      const height = container.clientHeight;
+      camera.aspect = width / height;
+      camera.updateProjectionMatrix();
+      renderer.setSize(width, height);
+    }
+
+    const dialogueTree = [
+      {
+        id: 0,
+        speaker: "IULIUS CAESAR",
+        text: "Ave, Discipule! Legiunile mele sunt gata. Auuzit-ai indemnul meu: 'Ad pugnandum parati sumus!' Știi ce fel de structură sintactică am folosit?",
+        cam: { x: -0.8, y: 2.8, z: 4.5 },
+        options: [
+          { label: "Ați folosit un Gerundiu la Acuzativ cu 'ad'!", nextId: 1 },
+          { label: "Este un Gerundival pasiv, Domnule General!", nextId: 2 }
+        ]
+      },
+      {
+        id: 1,
+        speaker: "IULIUS CAESAR",
+        text: "Optime! 'Ad pugnandum' este exact un GERUNDIU (substantiv verbal activ) la Acuzativ, arătând scopul: 'Suntem pregătiți pentru a lupta'. Dar ce facem dacă adăugăm un obiect direct, cum ar fi 'patria'?",
+        cam: { x: 0, y: 3.2, z: 6 },
+        options: [
+          { label: "Spunem 'Ad pugnandum patriam' (Gerundiu + Acuzativ)", nextId: 3 },
+          { label: "Romanii preferă transformarea în Gerundival: 'Ad patriam pugnandam'!", nextId: 4 }
+        ]
+      },
+      {
+        id: 2,
+        speaker: "IULIUS CAESAR",
+        text: "Non ita! 'Pugnandum' aici este un Gerundiu (substantiv), nu un Gerundival acordat cu un substantiv. Amintește-ți: Gerundiul este activ și neutru!",
+        cam: { x: -0.8, y: 2.8, z: 4.5 },
+        options: [
+          { label: "Am înțeles, Caesar! Să reluăm întrebarea.", nextId: 0 }
+        ]
+      },
+      {
+        id: 3,
+        speaker: "IULIUS CAESAR",
+        text: "Este corect gramatical, dar sună neinspirat pentru un orator roman! Romanii evită gerundiul urmat de acuzativ direct, preferând ATRACȚIA GERUNDIVALĂ.",
+        cam: { x: 0, y: 3.2, z: 6 },
+        options: [
+          { label: "Cum funcționează această Atracție Gerundivală?", nextId: 4 }
+        ]
+      },
+      {
+        id: 4,
+        speaker: "IULIUS CAESAR",
+        text: "Urmărește bine: 'Ad patriam pugnandam'. Substantivul (patriam) atrage Gerundivalul (pugnandam), care se acordă cu el în Gen, Număr și Caz! Astfel avem un adjectiv verbal armonios.",
+        cam: { x: 1.0, y: 2.6, z: 4.5 },
+        options: [
+          { label: "Deci Gerundivalul devine adjectiv și se acordă cu substantivul?", nextId: 5 }
+        ]
+      },
+      {
+        id: 5,
+        speaker: "DISCIPULUS (ELEVUL)",
+        text: "Am înțeles! Dacă spun 'ars regendi civitatem' (arta de a guverna cetatea), prin atracție gerundivală devine 'ars regendae civitatis'!",
+        cam: { x: 1.2, y: 2.5, z: 4.0 },
+        options: [
+          { label: "Întreabă-l pe Caesar despre maxima 'Carthago delenda est'", nextId: 6 }
+        ]
+      },
+      {
+        id: 6,
+        speaker: "IULIUS CAESAR",
+        text: "Magnifice! Iar când Cato spune 'Carthago delenda est', el folosește Gerundivalul cu verbul 'sum' pentru a exprima OBLIGATIVITATEA: 'Carthagina trebuie distrusă!'. Ești gata pentru exerciții!",
+        cam: { x: 0, y: 3.5, z: 7 },
+        options: [
+          { label: "Mulțumesc, Caesar! Merg la Exercițiile Interactive.", action: "goToExercises" },
+          { label: "Reluăm cutscene-ul de la început.", nextId: 0 }
+        ]
+      }
+    ];
+
+    function startCutscene() {
+      const overlay = document.getElementById('cutscene-overlay-start');
+      const badge = document.getElementById('rpg-speaker-badge');
+      const dialog = document.getElementById('rpg-dialog-box');
+
+      if (overlay) overlay.classList.add('hidden');
+      if (badge) badge.classList.remove('hidden');
+      if (dialog) dialog.classList.remove('hidden');
+
+      renderStep(0);
+    }
+
+    function renderStep(stepId) {
+      const step = dialogueTree.find(s => s.id === stepId);
+      if (!step) return;
+
+      const badge = document.getElementById('rpg-speaker-badge');
+      const text = document.getElementById('rpg-dialog-text');
+      
+      if (badge) badge.innerText = step.speaker;
+      if (text) text.innerText = step.text;
+
+      if (step.cam) cameraTargetPos = step.cam;
+
+      const controlsContainer = document.getElementById('rpg-controls');
+      if (controlsContainer) {
+        controlsContainer.innerHTML = '';
+        step.options.forEach(opt => {
+          const btn = document.createElement('button');
+          btn.className = "px-4 py-2 bg-roman-crimson hover:bg-red-700 text-roman-goldlight font-cinzel text-xs sm:text-sm font-bold rounded border border-roman-gold/50 shadow transition transform hover:scale-105";
+          btn.innerText = opt.label;
+          btn.onclick = () => {
+            if (opt.action === "goToExercises") {
+              switchTab('tab-exercitii');
+            } else if (opt.nextId !== undefined) {
+              renderStep(opt.nextId);
+            }
+          };
+          controlsContainer.appendChild(btn);
+        });
+      }
+    }
+
+    let userScore = 0;
+    let completedEx = { q1: false, q2: false, q3: false, q4: false };
+
+    function updateScoreDisplay() {
+      const el = document.getElementById('user-score');
+      if (el) el.innerText = userScore;
+    }
+
+    function checkQ1(btn, isCorrect) {
+      if (completedEx.q1) return;
+      
+      const parent = document.getElementById('q1-options');
+      if (parent) {
+        const buttons = parent.querySelectorAll('button');
+        buttons.forEach(b => b.classList.add('opacity-50', 'pointer-events-none'));
+      }
+
+      if (isCorrect) {
+        btn.classList.remove('opacity-50');
+        btn.classList.add('bg-emerald-200', 'border-emerald-600', 'text-emerald-900', 'font-bold');
+        userScore += 10;
+        completedEx.q1 = true;
+      } else {
+        btn.classList.remove('opacity-50');
+        btn.classList.add('bg-red-200', 'border-red-600', 'text-red-900');
+      }
+      updateScoreDisplay();
+    }
+
+    function checkQ2() {
+      if (completedEx.q2) return;
+      const in1 = document.getElementById('q2-input-1').value.trim().toLowerCase();
+      const in2 = document.getElementById('q2-input-2').value.trim().toLowerCase();
+      const feedback = document.getElementById('q2-feedback');
+
+      if (in1 === 'libri' && in2 === 'legendi') {
+        feedback.className = "text-xs font-bold text-emerald-700 mt-2";
+        feedback.innerText = "✓ Corect! 'Spes libri legendi' (Atracție gerundivală în Genitiv).";
+        userScore += 10;
+        completedEx.q2 = true;
+        updateScoreDisplay();
+      } else {
+        feedback.className = "text-xs font-bold text-red-600 mt-2";
+        feedback.innerText = "✗ Incorect. Indiciu: Substantivul 'liber, libri' la genitiv singular este 'libri', iar gerundivalul derivat din 'lego' este 'legendi'.";
+      }
+    }
+
+    function checkQ3() {
+      if (completedEx.q3) return;
+      const s1 = document.getElementById('q3-select-1').value;
+      const s2 = document.getElementById('q3-select-2').value;
+      const s3 = document.getElementById('q3-select-3').value;
+      const feedback = document.getElementById('q3-feedback');
+
+      if (s1 === 'obligativitate' && s2 === 'genitiv' && s3 === 'scop') {
+        feedback.className = "text-xs font-bold text-emerald-700 mt-2";
+        feedback.innerText = "✓ Excelent! Toate asocierile sintactice sunt corecte.";
+        userScore += 10;
+        completedEx.q3 = true;
+        updateScoreDisplay();
+      } else {
+        feedback.className = "text-xs font-bold text-red-600 mt-2";
+        feedback.innerText = "✗ Unele potriviri sunt greșite. Verifică din nou semnificația fiecărei structuri!";
+      }
+    }
+
+    function checkQ4() {
+      if (completedEx.q4) return;
+      const val = document.getElementById('q4-input').value.trim().toLowerCase();
+      const feedback = document.getElementById('q4-feedback');
+
+      if (val === 'dam' || val === 'endam' || val === 'defendendam') {
+        feedback.className = "text-xs font-bold text-emerald-700 mt-2";
+        feedback.innerText = "✓ Corect! Formă completă: 'defendendam' (Acuzativ feminin singular).";
+        userScore += 10;
+        completedEx.q4 = true;
+        updateScoreDisplay();
+      } else {
+        feedback.className = "text-xs font-bold text-red-600 mt-2";
+        feedback.innerText = "✗ Incorect. Deoarece 'urbem' este acuzativ feminin, terminația gerundivalului trebuie să fie '-am' (defendendam).";
+      }
+    }
+
+    function resetExercises() {
+      userScore = 0;
+      completedEx = { q1: false, q2: false, q3: false, q4: false };
+      updateScoreDisplay();
+
+      const q1Btns = document.getElementById('q1-options').querySelectorAll('button');
+      q1Btns.forEach(b => {
+        b.className = "p-3 bg-white hover:bg-amber-100 border border-amber-300 rounded text-left font-serif transition";
+      });
+
+      document.getElementById('q2-input-1').value = '';
+      document.getElementById('q2-input-2').value = '';
+      document.getElementById('q2-feedback').innerText = '';
+
+      document.getElementById('q3-select-1').value = '';
+      document.getElementById('q3-select-2').value = '';
+      document.getElementById('q3-select-3').value = '';
+      document.getElementById('q3-feedback').innerText = '';
+
+      document.getElementById('q4-input').value = '';
+      document.getElementById('q4-feedback').innerText = '';
+    }
+
+    window.onload = function() {
+      init3D();
+    };
+  </script>
+</body>
+</html>
